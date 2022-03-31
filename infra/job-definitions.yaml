@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Batch Job definitions"
+
+Parameters:
+  ContainerBaseImage:
+    Description: Service name
+    Type: String
+    Default: 665952734533.dkr.ecr.eu-west-1.amazonaws.com/cypress-dgt
+  ComputingStack:
+    Description: Service name
+    Type: String
+    Default: Batch-Clusters
+
+Resources:
+
+  # Jobs
+  # -------------------------------------------------------------------------- #
+
+  TaskExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service:
+                - 'ecs-tasks.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSBatchServiceRole
+      Policies:
+        - PolicyName: 'SubmitBatch'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'batch:SubmitJob'
+                  - "batch:DescribeJobs"
+                Resource: '*'
+        - PolicyName: 'EcsSecrets'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'kms:Decrypt'
+                  - 'secretsmanager:GetSecretValue'
+                  - 'ssm:GetParameters'
+                Resource: '*'
+
+  BatchContainerIAMRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service:
+                - 'ecs-tasks.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+      Policies:
+        - PolicyName: 'SubmitBatch'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'batch:SubmitJob'
+                Resource: '*'
+        - PolicyName: 'AccessSM'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'ssm:GetParameters'
+                  - 'secretsmanager:GetSecretValue'
+                  - 'kms:Decrypt'
+                Resource: '*'
+
+  JobDefinitionOne:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      JobDefinitionName: !Join [ -, [ 'ContainerNode' ] ]
+      Type: container
+      RetryStrategy:
+         Attempts: 1
+      ContainerProperties:
+        Environment:
+          - Name: 'AWS_DEFAULT_REGION'
+            Value: 'eu-west-1'
+        JobRoleArn: !Ref BatchContainerIAMRole
+        ExecutionRoleArn: !GetAtt 'TaskExecutionRole.Arn'
+        Command:
+          - echo
+          - "test"
+        Image: !Ref ContainerBaseImage
+        Memory: 2048
+        Vcpus: 1
+
+Outputs:
+  JobDefinitionOne:
+    Description: Cleverea batch container job
+    Value: !Ref JobDefinitionOne
+    Export:
+      Name: !Join [ '-', [ !Ref 'AWS::StackName', 'ContainerJobOne' ] ]
