@@ -8,4 +8,4 @@ COPY . ./
 
 RUN npm install
 
-ENTRYPOINT ["bash"]
+CMD ["npm", "start"]
