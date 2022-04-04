@@ -6,6 +6,7 @@ WORKDIR /home/appuser/cypress-dgt
 
 COPY . ./
 
-RUN npm i
+RUN npm install
+RUN npx browserslist@latest --update-db
 
-ENTRYPOINT ["bash"]
+ENTRYPOINT ["sh"]
