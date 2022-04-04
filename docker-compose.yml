@@ -8,11 +8,6 @@ services:
     image: cypress-dgt
     env_file:
      - .env
-    environment:
-      - TERM=xterm
-      - LC_ALL=en_US.UTF-8
-      - LANG=en_US.UTF-8
-      - LANGUAGE=en_US.UTF-8
     volumes:
       - type: bind
         source: ./
