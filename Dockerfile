@@ -1,5 +1,5 @@
 # Node base image
-FROM cypress/base:16.14.0
+FROM cypress/base:14.18.1
 
 # Service production image
 WORKDIR /home/appuser/cypress-dgt
